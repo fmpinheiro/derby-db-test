@@ -11,9 +11,18 @@ public class MainEmbedded {
         Connection connection = connectToDatabase(driver);
         System.out.println(String.format("Connected! Got %s connection object", connection));
         System.out.println("Listing system tables");
-        try (PreparedStatement pstmt = connection.prepareStatement("SELECT * FROM SYS.SYSTABLES ORDER BY TABLEID"); ResultSet rs = pstmt.executeQuery()) {
-            while (rs.next()) {
-                System.out.println(String.format("Table ID: %s, Table name: %s, Table type: %s", rs.getString("TABLEID"), rs.getString("TABLENAME"), rs.getString("TABLETYPE")));
+        try {
+            try (PreparedStatement pstmt = connection.prepareStatement("SELECT * FROM SYS.SYSTABLES ORDER BY TABLEID"); ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    System.out.println(String.format("Table ID: %s, Table name: %s, Table type: %s", rs.getString("TABLEID"), rs.getString("TABLENAME"), rs.getString("TABLETYPE")));
+                }
+            }
+            String backupName = String.format("/tmp/derby-backup-%d", System.currentTimeMillis());
+            System.out.println(String.format("Creating a backup in %s", backupName));
+
+            try (CallableStatement cs = connection.prepareCall("CALL SYSCS_UTIL.SYSCS_BACKUP_DATABASE(?)")) {
+                cs.setString(1, backupName);
+                cs.execute();
             }
         } finally {
             connection.close();
